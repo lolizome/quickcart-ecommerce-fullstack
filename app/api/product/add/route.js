@@ -5,22 +5,24 @@ import { getAuth } from "@clerk/nextjs/server";
 import { v2 as cloudinary } from "cloudinary"; 
 import { NextResponse } from "next/server";
 
-// Configure Cloudinary
+// Cloudinary service configuration
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+/**
+ * Create a new Product
+ */
 export async function POST(request) {
     try {
         const { userId } = getAuth(request);
         const isSeller = await authSeller(userId);
 
-        if (!isSeller) {
-            return NextResponse.json({ success: false, message: 'Not authorized' });
-        }
+        if(!isSeller) return NextResponse.json({ success: false, message: 'Not authorized' });
 
+        // Parse form data from the request
         const formData = await request.formData();
         const name = formData.get('name');
         const description = formData.get('description');
@@ -29,10 +31,9 @@ export async function POST(request) {
         const offerPrice = formData.get('offerPrice');
         const files = formData.getAll('images');
 
-        if(!files || files.length === 0) {
-            return NextResponse.json({ success: false, message: 'No files uploaded' });
-        }
+        if(!files || files.length === 0) return NextResponse.json({ success: false, message: 'No files uploaded' });
 
+        // Process multiple images to Cloudinary concurrently
         const result = await Promise.all(
             files.map(async (file) => {
                 const arrayBuffer = await file.arrayBuffer();
@@ -42,11 +43,7 @@ export async function POST(request) {
                     const stream = cloudinary.uploader.upload_stream(
                         {resource_type: 'auto'},
                         (error, result) => {
-                            if (error) {
-                                reject(error);
-                            } else {
-                                resolve(result);
-                            }
+                            (error) ? reject(error) : resolve(result);
                         }
                     )
                     stream.end(buffer);
@@ -62,14 +59,14 @@ export async function POST(request) {
             name,
             description,
             category,
-            price: Number(price),
-            offerPrice: Number(offerPrice),
+            price: Number(price) || 0,
+            offerPrice: Number(offerPrice) || 0,
             image,
             date: Date.now()
         });
 
         return NextResponse.json({ success:true, message: 'Upload successful', newProduct });
     } catch (error) {
-        return NextResponse.json({ success: false, message: error });
+        return NextResponse.json({ success: false, message: error.message });
     }
 }

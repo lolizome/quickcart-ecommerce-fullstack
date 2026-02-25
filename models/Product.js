@@ -1,5 +1,8 @@
 import mongoose from "mongoose";
 
+/**
+ * Product Schema definition for MongoDB
+ */
 const productSchema = new mongoose.Schema({
     userId: { type: String, required: true, ref: 'user' },
     name: { type: String, required: true },
