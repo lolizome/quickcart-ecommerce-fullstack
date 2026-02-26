@@ -1,8 +1,6 @@
 import mongoose from "mongoose";
 
-/**
- * User Schema definition for MongoDB
- */
+// User Schema definition for MongoDB
 const userSchema = new mongoose.Schema({
     _id:{ type: String, required: true },
     name:{ type: String, required: true },

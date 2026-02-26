@@ -1,17 +1,35 @@
+'use client';
+
 import { addressDummyData } from "@/assets/assets";
 import { useAppContext } from "@/context/AppContext";
+import axios from "axios";
 import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
 const OrderSummary = () => {
 
-  const { currency, router, getCartCount, getCartAmount } = useAppContext()
+  const { currency, router, getCartCount, getCartAmount, getToken, user, cartItems, setCartItems } = useAppContext();
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const [userAddresses, setUserAddresses] = useState([]);
 
+  // Fetch all addresses belonging to the current user
   const fetchUserAddresses = async () => {
-    setUserAddresses(addressDummyData);
+    try {
+      const token = await getToken();
+      const { data } = await axios.get('/api/user/get-address', { headers: { Authorization:`Bearer ${token}` } } );
+      
+      if(data.success) {
+        // Update local state with the array of addresses from MongoDB
+        setUserAddresses(data.addresses);
+        if(data.addresses.length > 0) setSelectedAddress(data.addresses[0]);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+        toast.error(error.message);
+    }
   }
 
   const handleAddressSelect = (address) => {
@@ -20,12 +38,12 @@ const OrderSummary = () => {
   };
 
   const createOrder = async () => {
-
+    if(!selectedAddress) return toast.error("Please, select a shipping address");
   }
 
   useEffect(() => {
-    fetchUserAddresses();
-  }, [])
+    if(user) fetchUserAddresses();
+  }, [user]);
 
   return (
     <div className="w-full md:w-96 bg-gray-500/5 p-5">
@@ -40,15 +58,15 @@ const OrderSummary = () => {
           </label>
           <div className="relative inline-block w-full text-sm border">
             <button
-              className="peer w-full text-left px-4 pr-2 py-2 bg-white text-gray-700 focus:outline-none"
+              className="relative w-full text-left px-4 pr-2 py-2 bg-white text-gray-700 focus:outline-none"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             >
-              <span>
+              <span className="truncate block pr-6">
                 {selectedAddress
                   ? `${selectedAddress.fullName}, ${selectedAddress.area}, ${selectedAddress.city}, ${selectedAddress.state}`
                   : "Select Address"}
               </span>
-              <svg className={`w-5 h-5 inline float-right transition-transform duration-200 ${isDropdownOpen ? "rotate-0" : "-rotate-90"}`}
+              <svg className={`w-5 h-5 absolute right-2 top-2.5 inline float-right transition-transform duration-200 ${isDropdownOpen ? "rotate-0" : "-rotate-90"}`}
                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="#6B7280"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
